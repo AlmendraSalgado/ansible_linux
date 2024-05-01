@@ -1,0 +1,56 @@
+---
+- name: Check stats from hosts
+  hosts: all
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Show all the ansible facts from the hosts
+      # Content suggestion provided by Ansible Lightspeed
+      ansible.builtin.debug:
+        var: ansible_facts
+
+    - name: Show swap space using ansible facts
+      debug:
+        msg: "Swap space mb: {{ ansible_memory_mb.swap }}"
+
+    # - name: Check swap space
+    #   # Content suggestion provided by Ansible Lightspeed
+    #   ansible.builtin.shell: df -h | grep '^/dev' | awk '{ print $5 }' | sed 's/G//'
+    #   register: swap_space
+    #   changed_when: false
+    #   failed_when: false
+
+    # - name: Show swap space using the registered variable from the previous task
+    #   # Content suggestion provided by Ansible Lightspeed
+    #   ansible.builtin.debug:
+    #     msg: "{{ swap_space.stdout }}"
+
+    - name: Check disk space utilization
+      # Content suggestion provided by Ansible Lightspeed
+      ansible.builtin.shell: df -h | grep '^/dev' | awk '{ print $5 }' | sed 's/G//'
+      register: disk_space
+      changed_when: false
+      failed_when: false
+
+    - name: Show disk space utilization using the registered variable from the previous task
+      # Content suggestion provided by Ansible Lightspeed
+      ansible.builtin.debug:
+        msg: "{{ disk_space.stdout }}"
+
+    - name: Show memory utilization using ansible facts
+      debug:
+        msg: "Memory utilization: {{ ansible_memory_mb.real }}"
+
+    # - name: Check memory utilization
+    #   # Content suggestion provided by Ansible Lightspeed
+    #   ansible.builtin.shell: free -m | grep Mem | awk '{ print $2 }' | sed 's/M//'
+    #   register: memory_space
+    #   changed_when: false
+    #   failed_when: false
+
+    # - name: Show memory utilization using the registered variable from the previous task
+    #   # Content suggestion provided by Ansible Lightspeed
+    #   ansible.builtin.debug:
+    #     msg: "{{ memory_space.stdout }}"
+

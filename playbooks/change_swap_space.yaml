@@ -1,0 +1,67 @@
+---
+- name: Change swap space for hosts
+  hosts: all
+  become: true
+
+  vars:
+    _swap_file_path: /swapfile
+    _swap_file_size: 64
+  
+  tasks:
+    - name: Determine the size of the new swap file in megabytes and multiply by 1024 to determine the number of blocks
+      # Content suggestion provided by Ansible Lightspeed
+      ansible.builtin.set_fact:
+        swap_file_size_mb: "{{ _swap_file_size * 1024 }}"
+
+    - name: Create an empty file
+      ansible.builtin.command: dd if=/dev/zero of={{ _swap_file_path }} bs=1024 count={{ swap_file_size_mb }}
+
+    - name: Change the security of the swap file so it is not world readable
+      # Content suggestion provided by Ansible Lightspeed
+      ansible.builtin.file:
+        path: "{{ _swap_file_path }}"
+        mode: '0600'
+
+    - name: Set up the swap file with the command
+      # Content suggestion provided by Ansible Lightspeed
+      ansible.builtin.command: mkswap {{ _swap_file_path }}
+
+    - name: Edit the /etc/fstab file with the following entries to enable the swap file at boot time
+      # Content suggestion provided by Ansible Lightspeed
+      ansible.builtin.lineinfile:
+        dest: /etc/fstab
+        regexp: ^\s*{{ _swap_file_path }}\s+swap\s+swap\s+defaults\s+0\s+0
+        line: '{{ _swap_file_path }}   none    swap    defaults    0   0'
+    
+    - name: Regenerate mount units so that your system registers the new /etc/fstab configuration
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+    - name: Activate the swap file immediately
+      # Content suggestion provided by Ansible Lightspeed
+      ansible.builtin.command: swapon -a
+
+    - name: Verify the new swap file was successfully created and activated
+      ansible.builtin.command: cat /proc/swaps
+      register: swap_file_activation
+
+    - name: Show status of swap file
+      # Content suggestion provided by Ansible Lightspeed
+      ansible.builtin.debug:
+        msg: "{{ swap_file_activation.stdout_lines }}"
+
+    - name: Inspect activate swap space
+      ansible.builtin.command: free -h
+      register: swap_space
+
+    - name: Show new swap space
+      # Content suggestion provided by Ansible Lightspeed
+      ansible.builtin.debug:
+        msg: "{{ swap_space.stdout_lines }}"
+
+
+
+
+
+
+

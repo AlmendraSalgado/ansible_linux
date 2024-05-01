@@ -1,0 +1,29 @@
+---
+- name: Install some required packages and start the services associated
+  hosts: all
+  become: true
+
+  vars:
+    required_pkgs: 
+      - wget
+      - unzip
+      - podman
+      - httpd
+    some_services:
+      - httpd
+      - podman
+
+  tasks:
+    - name: Install the listed packages
+      # Content suggestion provided by Ansible Lightspeed
+      ansible.builtin.package:
+        name: "{{ required_pkgs }}"
+        state: present
+
+    - name: Start and enable the service associated to the packages
+      # Content suggestion provided by Ansible Lightspeed
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      loop: "{{ some_services }}"

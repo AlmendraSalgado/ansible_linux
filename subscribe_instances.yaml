@@ -1,0 +1,12 @@
+---
+- name: Subscribe instances
+  hosts: all
+
+  tasks:
+    - name: Subscribe machines with susbcription manager
+      community.general.redhat_subscription:
+        state: present
+        username: 'asalgado@redhat.com'
+        password: "{{ rhsm_password }}"
+        auto_attach: true
+
