@@ -1,6 +1,6 @@
 ---
 - name: Install httpd and create a basic index.html
-  host: all
+  hosts: all
   tasks:
     - name: Install httpd package
       ansible.builtin.package:
