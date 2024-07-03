@@ -26,3 +26,11 @@
           </html>
         dest: /var/www/html/index.html
 
+    - ansible.builtin.uri:
+        url: "http://localhost"
+        return_content: true
+      register: output
+
+    - debug:
+        var: output.content
+
