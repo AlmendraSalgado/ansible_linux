@@ -2,6 +2,10 @@
 - hosts: all
 
   tasks:
+    - name: Set fact for home directory
+      ansible.builtin.set_fact:
+        home_dir: "{{ lookup('env', 'HOME') }}"
+
     - name: Install Node.js and the packages required
       ansible.builtin.package:
         name: 
@@ -12,17 +16,17 @@
     - name: Clone the application from the repo
       ansible.builtin.git:
         repo: "{{ app_repo }}"
-        dest: "{{ ENV['HOME'] }}/sudoku"
+        dest: "{{ home_dir }}/sudoku"
 
     - name: Install the application dependencies
       ansible.builtin.command:
         cmd: "npm install"
-        chdir: "{{ ENV['HOME'] }}/sudoku"
+        chdir: "{{ home_dir }}/sudoku"
 
     - name: Start the application
       ansible.builtin.command:
         cmd: "npm start"
-        chdir: "{{ ENV['HOME'] }}/sudoku"
+        chdir: "{{ home_dir }}/sudoku"
 
     - name: Check if the application is running
       ansible.builtin.uri:
