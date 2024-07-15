@@ -27,7 +27,7 @@
 
     - name: Start the application
       ansible.builtin.command:
-        cmd: "node server"
+        cmd: "npm run"
         chdir: "{{ home_dir }}/sudoku"
 
     - name: Check if the application is running
