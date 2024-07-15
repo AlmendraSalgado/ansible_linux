@@ -18,6 +18,7 @@
       ansible.builtin.git:
         repo: "{{ app_repo }}"
         dest: "{{ home_dir }}/sudoku"
+        force: yes
 
     - name: Install the application dependencies
       ansible.builtin.command:
