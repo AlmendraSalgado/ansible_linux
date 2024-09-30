@@ -19,6 +19,7 @@
       ansible.builtin.package:
         name: "{{ required_pkgs }}"
         state: present
+      ignore_errors: true
 
     - name: Start and enable the service associated to the packages
       # Content suggestion provided by Ansible Lightspeed
@@ -27,3 +28,4 @@
         state: started
         enabled: true
       loop: "{{ some_services }}"
+      ignore_errors: true
