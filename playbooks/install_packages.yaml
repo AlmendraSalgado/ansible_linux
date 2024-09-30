@@ -9,9 +9,11 @@
       - unzip
       - podman
       - httpd
+      - apache2
     some_services:
       - httpd
       - podman
+      - apache2
 
   tasks:
     - name: Install the listed packages

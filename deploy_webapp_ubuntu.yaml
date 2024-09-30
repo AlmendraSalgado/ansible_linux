@@ -1,0 +1,27 @@
+- name: Create and deploy a basic index.html
+  hosts: all
+
+  tasks:
+    - name: Create a simple index.html in ubuntu for apache2
+      ansible.builtin.copy:
+        content: |
+          <html>
+            <head>
+              <title>{{ welcome_title }}</title>
+            </head>
+            <body>
+              <h1>{{ welcome_message }}</h1>
+            </body>
+          </html>l
+        dest: /var/www/html/index.html
+        owner: root
+        group: root
+        mode: '0644'
+      notify: restart apache service
+
+  handlers:
+    - name: restart apache service
+      ansible.builtin.service:
+        name: apache2
+        state: restarted
+
