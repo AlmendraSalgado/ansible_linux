@@ -45,13 +45,31 @@
       notify: restart apache service
 
     - name: Enable new site
-      ansible.builtin.shell: /usr/sbin/a2ensite {{ site.conf }}
+      ansible.builtin.shell: /usr/sbin/a2ensite site.conf
       notify: reload apache service
 
     - name: Disable default Apache site
       ansible.builtin.shell: /usr/sbin/a2dissite 000-default.conf
       when: disable_default
       notify: reload apache service
+
+    - name: Show url for accessing the apache server
+      ansible.builtin.debug:
+        msg: You can access the server at http://{{ ansible_host }}:80
+
+    - name: Test connection to recently configured server
+      ansible.builtin.uri:
+        url: http://{{ ansible_host }}:80
+        status_code: 200
+      register: result
+      until: result.status == 200
+      retries: 3
+      delay: 10
+
+    - name: Show test connection result
+      ansible.builtin.debug:
+        msg: Connection to server was successful
+      when: result.status == 200
 
   handlers:
     - name: restart apache service
