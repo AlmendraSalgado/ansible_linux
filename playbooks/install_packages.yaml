@@ -15,7 +15,6 @@
       - apache2
       - docker
     ubuntu_services:
-      - docker
       - apache2
     centos_services:
       - httpd
