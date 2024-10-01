@@ -1,6 +1,9 @@
 - name: Create and deploy a basic index.html
   hosts: all
 
+  vars:
+    disable_default: true
+
   tasks:
     - name: Ensure site path exists
       ansible.builtin.file:
