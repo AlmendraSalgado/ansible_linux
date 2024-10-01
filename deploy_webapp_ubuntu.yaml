@@ -26,7 +26,6 @@
         group: root
         mode: '0644'
 
-
     - name: Create a simple index.html in ubuntu for apache2
       ansible.builtin.copy:
         content: |
@@ -72,7 +71,7 @@
       when: result.status == 200
 
   handlers:
-    - name: restart apache service
+    - name: reload apache service
       ansible.builtin.service:
         name: apache2
         state: reloaded
