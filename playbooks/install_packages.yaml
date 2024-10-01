@@ -4,30 +4,54 @@
   become: true
 
   vars:
-    required_pkgs: 
+    common_pkgs: 
       - wget
       - unzip
+      - git
+    centos_pkgs:
       - podman
       - httpd
+    ubuntu_pkgs:
       - apache2
-    some_services:
+      - docker
+    ubuntu_services:
+      - docker
+      - apache2
+    centos_services:
       - httpd
       - podman
-      - apache2
 
   tasks:
     - name: Install the listed packages
       # Content suggestion provided by Ansible Lightspeed
       ansible.builtin.package:
-        name: "{{ required_pkgs }}"
+        name: "{{ common_pkgs }}"
         state: present
-      ignore_errors: true
 
-    - name: Start and enable the service associated to the packages
-      # Content suggestion provided by Ansible Lightspeed
+    - name: Install ubuntu packages based on os
+      ansible.builtin.package:
+        name: "{{ ubuntu_pkgs }}"
+        state: present
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: Install centos packages based on ansible_distribution
+      ansible.builtin.package:
+        name: "{{ centos_pkgs }}"
+        state: present
+      when: ansible_distribution == 'CentOS'
+
+    - name: Start and enable services associated to the packages based on ansible_distribution
       ansible.builtin.service:
         name: "{{ item }}"
         state: started
         enabled: true
-      loop: "{{ some_services }}"
-      ignore_errors: true
+      loop: "{{ ubuntu_services }}"
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: Start and enable the service associated to the centos packages
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      loop: "{{ centos_services }}"
+      when: ansible_distribution == 'CentOS'
