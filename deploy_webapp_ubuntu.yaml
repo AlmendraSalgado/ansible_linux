@@ -37,7 +37,7 @@
             <body>
               <h1>{{ welcome_message }}</h1>
             </body>
-          </html>l
+          </html>
         dest: /var/www/site/index.html
         owner: root
         group: root
