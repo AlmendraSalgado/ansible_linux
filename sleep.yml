@@ -1,0 +1,11 @@
+---
+- hosts: all
+  gather_facts: true
+
+  tasks:
+    - name: Printing extra vars
+      ansible.builtin.debug:
+        msg: "'{{ lookup('ansible.builtin.env', 'WORKER_MAX_LIFETIME_SECONDS') }}' is the WORKER environment variable."
+
+    - name: Print date and time every minute indefinitely
+      ansible.builtin.shell: "while true; do date; sleep 300; done"
