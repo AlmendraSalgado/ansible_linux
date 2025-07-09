@@ -1,0 +1,99 @@
+---
+- name: Install and configure postgresql as external DB for AAP
+  hosts: db
+  become: true
+  vars:
+    postgres_password: "YourSecurePassword"
+    pg_hba_path: /var/lib/pgsql/data/pg_hba.conf
+    db_user: awx
+    db_pass: redhat123
+    db_owner_list:
+      - name: controller_db
+        owner: controller
+      - name: gateway_db
+        owner: gateway
+      - name: eda_db
+        owner: eda
+  
+  tasks:
+    - name: Install pip for Python
+      ansible.builtin.yum:
+        name: python3-pip
+        state: present
+  
+    - name: Install required python libraries
+      ansible.builtin.pip:
+        name:
+          - psycopg2-binary
+
+    - name: Install postgresql 15
+      ansible.builtin.dnf:
+        name: '@postgresql:15/server'
+        state: present
+
+    - name: Check if PostgreSQL is initialized
+      stat:
+        path: /var/lib/pgsql/data/PG_VERSION
+      register: pg_init
+
+    - name: Debug initialization status
+      debug:
+        msg: "PostgreSQL is initialized"
+      when: pg_init.stat.exists
+
+    - name: Initialize PostgreSQL database
+      ansible.builtin.command: postgresql-setup --initdb
+      when: not pg_init.stat.exists
+
+    - name: Ensure PostgreSQL 15 is enabled and started
+      ansible.builtin.service:
+        name: postgresql
+        state: started
+        enabled: yes
+
+    - name: Set postgres user password
+      community.postgresql.postgresql_user:
+        name: postgres
+        password: "{{ postgres_password }}"
+        role_attr_flags: "SUPERUSER"
+      become_user: postgres 
+
+    - name: Replace 'peer' with 'md5' for local connections in pg_hba.conf
+      replace:
+        path: "{{ pg_hba_path }}"
+        regexp: '^local\s+all\s+all\s+peer'
+        replace: 'local   all             all                                     md5'
+
+    - name: Reload PostgreSQL to apply changes
+      service:
+        name: postgresql
+        state: reloaded
+
+    - name: Create awx user, set password, grant privs
+      community.postgresql.postgresql_user:
+        name: "{{ db_user }}"
+        password: "{{ db_pass }}"
+        login_user: postgres
+        login_password: "{{ postgres_password }}"
+        role_attr_flags: SUPERUSER
+    
+    - name: Create db users, set password, grant privs
+      community.postgresql.postgresql_user:
+        name: "{{ item.owner }}"
+        password: "{{ db_pass }}"
+        login_db: postgres
+        login_user: "{{ db_user }}"
+        login_password: "{{ db_pass }}"
+        role_attr_flags: CREATEDB
+      loop: "{{ db_owner_list }}"
+
+    - name: Create a new database with name controller_db
+      community.postgresql.postgresql_db:
+        name: "{{ item.name }}"
+        owner: "{{ item.owner }}"
+        # login_db: postgres
+        login_user: "{{ db_user }}"
+        login_password: "{{ db_pass }}"
+        state: present
+      loop: "{{ db_owner_list }}"
+      tags: test
