@@ -1,6 +1,7 @@
 ---
 - name: Subscribe instances
   hosts: all
+  gather_facts: false
 
   pre_tasks:
     - name: Wait for SSH connection to the new EC2 instance
