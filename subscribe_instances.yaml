@@ -2,6 +2,11 @@
 - name: Subscribe instances
   hosts: all
 
+  pre_tasks:
+    - name: Wait for SSH connection to the new EC2 instance
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+
   tasks:
     - name: Subscribe machines with susbcription manager
       community.general.redhat_subscription:
