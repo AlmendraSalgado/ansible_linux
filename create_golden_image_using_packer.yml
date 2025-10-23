@@ -34,8 +34,8 @@
       ansible.builtin.template:
         src: "templates/packer-hcl.j2"
         dest: "{{ out_dir }}/packer-{{ item.packer_target }}.pkr.hcl"
-        vars:
-          packer_target: "{{ item.packer_target }}"
-          gcp: "{{ item.gcp | default({}) }}"
-          ahv: "{{ item.ahv | default({}) }}"
+      vars:
+        packer_target: "{{ item.packer_target }}"
+        gcp: "{{ item.gcp | default({}) }}"
+        ahv: "{{ item.ahv | default({}) }}"
       loop: "{{ images }}"
