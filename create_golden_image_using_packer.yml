@@ -39,3 +39,7 @@
         gcp: "{{ item.gcp | default({}) }}"
         ahv: "{{ item.ahv | default({}) }}"
       loop: "{{ images }}"
+
+    - name: Build Golden Images based on HCL templates
+      ansible.builtin.command: packer build {{ out_dir }}/packer-{{ item.packer_target }}.pkr.hcl
+      loop: "{{ images }}"
