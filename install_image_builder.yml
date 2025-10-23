@@ -1,0 +1,80 @@
+---
+- name: Install image builder
+  hosts: all
+  gather_facts: true
+  become: true
+
+  pre_tasks:
+
+    - name: Create utility user for accessing image builder through UI
+      ansible.builtin.user:
+        name: ansible
+        password: "{{ image_builder_server_user_password | password_hash('sha512') }}"
+        group: wheel
+
+  tasks:
+    - name: Run the role
+      ansible.builtin.import_role:
+        name: infra.osbuild.setup_server
+
+  # vars:
+  #   image_builder_packages:
+  #     - git 
+  #     - osbuild-composer 
+  #     - composer-cli 
+  #     - cockpit-composer 
+  #     - bash-completion 
+  #     - lorax
+  #     - firewalld
+
+  # tasks:
+  #   - name: Update operating system
+  #     ansible.builtin.package:
+  #       name: '*'
+  #       state: latest
+    
+  #   - name: Install image builder required packages
+  #     ansible.builtin.package:
+  #       name: "{{ image_builder_packages }}"
+  #       state: latest
+
+  #   - name: Allow access to the web console service cockpit
+  #     ansible.posix.firewalld:
+  #       service: cockpit
+  #       permanent: true
+  #       state: enabled
+
+  #   - name: Enable osbuild-composer and cockpit service
+  #     ansible.builtin.systemd:
+  #       name: "{{ item }}"
+  #       enabled: true
+  #       state: started
+  #     loop:
+  #       - osbuild-composer.socket
+  #       - cockpit.socket
+
+  #   - name: Reboot system
+  #     ansible.builtin.reboot:
+
+  #   - name: Load the shell configuration script so that the autocomplete feature for the composer-cli command starts working immediately without reboot
+  #     # Content suggestion provided by Ansible Lightspeed
+  #     ansible.builtin.shell: source /etc/bash_completion.d/composer-cli
+
+  #   - name: Verify that the installation works by running composer-cli
+  #     ansible.builtin.command: composer-cli status show
+  #     ignore_errors: true
+  #     register: output
+
+  #   - name: Fail when output rc isn't 0
+  #     ansible.builtin.fail:
+  #       msg: composer-cli status show failed with {{ output.rc }}
+  #     when: output.rc != 0
+
+  #   - name: Show installation status
+  #     ansible.builtin.debug:
+  #       var: output.stdout_lines
+
+
+
+
+
