@@ -40,6 +40,52 @@
         ahv: "{{ item.ahv | default({}) }}"
       loop: "{{ images }}"
 
+    - name: Init / fmt / validate Packer templates (with rescue on error)
+      block:
+        - name: Initialize Packer
+          ansible.builtin.command:
+            cmd: packer init .
+            chdir: "{{ out_dir }}"
+          register: packer_init
+
+        - name: Format Packer templates
+          ansible.builtin.command:
+            cmd: packer fmt .
+            chdir: "{{ out_dir }}"
+          register: packer_fmt
+
+        - name: Validate Packer templates
+          ansible.builtin.command:
+            cmd: packer validate .
+            chdir: "{{ out_dir }}"
+          register: packer_validate
+
+      rescue:
+        - name: packer init output
+          ansible.builtin.debug:
+            msg: |
+              packer init rc={{ packer_init.rc | default('n/a') }}
+              stdout: {{ packer_init.stdout | default('') }}
+              stderr: {{ packer_init.stderr | default('') }}
+
+        - name: packer fmt output
+          ansible.builtin.debug:
+            msg: |
+              packer fmt rc={{ packer_fmt.rc | default('n/a') }}
+              stdout: {{ packer_fmt.stdout | default('') }}
+              stderr: {{ packer_fmt.stderr | default('') }}
+
+        - name: packer validate output
+          ansible.builtin.debug:
+            msg: |
+              packer validate rc={{ packer_validate.rc | default('n/a') }}
+              stdout: {{ packer_validate.stdout | default('') }}
+              stderr: {{ packer_validate.stderr | default('') }}
+
+        - name: Fail with summary
+          ansible.builtin.fail:
+            msg: "Packer init/fmt/validate failed. See previous debug messages for details."
+      
     - name: Build Golden Images based on HCL templates
       ansible.builtin.command: packer build {{ out_dir }}/packer-{{ item.packer_target }}.pkr.hcl
       loop: "{{ images }}"
