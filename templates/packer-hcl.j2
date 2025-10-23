@@ -1,0 +1,109 @@
+# Jinja2 template to render a Packer HCL for GCP or Nutanix AHV.
+# Usage: set `packer_target` to "gcp" or "ahv" and provide the corresponding vars.
+# Example:
+#   packer_target: "gcp"
+#   gcp:
+#     project_id: my-project
+#     zone: us-central1-a
+#     image_name: my-image
+#     machine_type: e2-medium
+#     source_image_family: ubuntu-2004-lts
+#     disk_size_gb: 20
+#   ahv:
+#     prism_endpoint: https://prism.example.com
+#     username: admin
+#     password: secret
+#     cluster: my-cluster
+#     image_name: my-ahv-image
+#     vm_cpus: 2
+#     vm_memory_mb: 4096
+
+{% if packer_target == "gcp" %}
+variable "project_id" { type = string default = "{{ gcp.project_id | default('') }}" }
+variable "zone"       { type = string default = "{{ gcp.zone | default('us-central1-a') }}" }
+variable "image_name" { type = string default = "{{ gcp.image_name | default('packer-gcp') }}" }
+
+required_plugins {
+  googlecompute = {
+    version = ">= 1.0.0"
+    source  = "github.com/hashicorp/google"
+  }
+}
+
+source "googlecompute" "gcp-builder" {
+  project_id           = var.project_id
+  zone                 = var.zone
+  machine_type         = "{{ gcp.machine_type | default('e2-medium') }}"
+  source_image_family  = "{{ gcp.source_image_family | default('ubuntu-2004-lts') }}"
+  source_image_project = "{{ gcp.source_image_project | default('ubuntu-os-cloud') }}"
+  disk_size_gb         = {{ gcp.disk_size_gb | default(20) }}
+  image_name           = var.image_name
+  network              = "{{ gcp.network | default(omit) }}"
+  subnetwork           = "{{ gcp.subnetwork | default(omit) }}"
+  ssh_username         = "{{ gcp.ssh_username | default('packer') }}"
+  service_account_email = "{{ gcp.service_account_email | default(omit) }}"
+  scopes               = {{ gcp.scopes | default([]) | to_json }}
+}
+
+build {
+  name    = "gcp-{{ gcp.image_name | default('image') }}"
+  sources = ["source.googlecompute.gcp-builder"]
+
+  provisioner "shell" {
+    inline = [
+      "sudo apt-get update -y",
+      "sudo apt-get upgrade -y",
+      "sudo apt-get install -y qemu-guest-agent cloud-init"
+    ]
+  }
+}
+{% elif packer_target == "ahv" %}
+variable "prism_endpoint" { type = string default = "{{ ahv.prism_endpoint | default('') }}" }
+variable "username"       { type = string default = "{{ ahv.username | default('') }}" }
+# Do not place plain passwords in templates in production; use var files or env vars
+variable "password"       { type = string default = "{{ ahv.password | default('') }}" }
+variable "cluster"        { type = string default = "{{ ahv.cluster | default('') }}" }
+variable "image_name"     { type = string default = "{{ ahv.image_name | default('packer-ahv') }}" }
+
+required_plugins {
+  nutanix = {
+    version = ">= 0.1.0"
+    source  = "github.com/nutanix/packer-plugin-nutanix"
+  }
+}
+
+source "nutanix" "ahv-builder" {
+  prism_endpoint = var.prism_endpoint
+  username       = var.username
+  password       = var.password
+  cluster_name   = var.cluster
+
+  vm_name        = "packer-builder-{{ ahv.image_name | default('image') }}"
+  image_name     = var.image_name
+  vm_cpus        = {{ ahv.vm_cpus | default(2) }}
+  vm_memory_mb   = {{ ahv.vm_memory_mb | default(4096) }}
+
+  # Source image to clone (adjust per environment)
+  source_image_name = "{{ ahv.source_image_name | default('ubuntu-20-04-cloudimg') }}"
+  network           = "{{ ahv.network | default(omit) }}"
+
+  # SSH / cloud-init settings
+  ssh_username = "{{ ahv.ssh_username | default('packer') }}"
+}
+
+build {
+  name    = "ahv-{{ ahv.image_name | default('image') }}"
+  sources = ["source.nutanix.ahv-builder"]
+
+  provisioner "shell" {
+    inline = [
+      "sudo apt-get update -y",
+      "sudo apt-get install -y qemu-guest-agent cloud-init",
+      "sudo cloud-init clean --logs || true"
+    ]
+  }
+}
+{% else %}
+# No target selected. Set 'packer_target' to "gcp" or "ahv" and provide corresponding vars.
+# This file will be rendered empty if packer_target is not set.
+{% endif %}

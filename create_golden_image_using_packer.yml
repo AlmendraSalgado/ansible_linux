@@ -32,6 +32,6 @@
 
     - name: Create HCL template using the provided variables
       ansible.builtin.template:
-        src: packer-hcl.j2
+        src: "templates/packer-hcl.j2"
         dest: "{{ out_dir }}/packer-{{ item.packer_target }}.pkr.hcl"
       loop: "{{ images }}"
