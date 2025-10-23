@@ -1,0 +1,37 @@
+---
+- hosts: all
+  name: Create a golden image using Packer
+
+  vars:
+    out_dir: "/opt/packer/templates"
+    images:
+      - packer_target: "gcp"
+        gcp:
+          project_id: my-project
+          zone: us-central1-a
+          image_name: my-image
+          machine_type: e2-medium
+          source_image_family: ubuntu-2004-lts
+          disk_size_gb: 20
+      - packer_target: "ahv"
+        ahv:
+          prism_endpoint: https://prism.example.com
+          username: admin
+          password: secret
+          cluster: my-cluster
+          image_name: my-ahv-image
+          vm_cpus: 2
+          vm_memory_mb: 4096
+
+  tasks: 
+    - name: Ensure generated output directory exists
+      ansible.builtin.file:
+        path: "{{ out_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Create HCL template using the provided variables
+      ansible.builtin.templates:
+        src: templates/packer-hcl.j2
+        dest: "{{ out_dir }}/packer-{{ item.packer_target }}.pkr.hcl"
+      loop: "{{ images }}"
