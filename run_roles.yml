@@ -1,0 +1,71 @@
+---
+# Run the Galaxy roles in one block. If any task inside a role fails, rescue
+# publishes failure_reason for a later workflow node.
+#
+# On the workflow failure path, the next job template receives failure_reason
+# as an extra var. See log_failure_reason.yml.
+
+- name: Run roles and record a failure reason
+  hosts: "{{ target_hosts | default('all') }}"
+  gather_facts: false
+
+  tasks:
+    - name: Run roles
+      block:
+        - name: Note the role about to run
+          ansible.builtin.set_fact:
+            current_role: geerlingguy.git
+
+        - name: Run geerlingguy.git
+          ansible.builtin.include_role:
+            name: "{{ current_role }}"
+
+        - name: Note the role about to run
+          ansible.builtin.set_fact:
+            current_role: geerlingguy.nginx
+
+        - name: Run geerlingguy.nginx
+          ansible.builtin.include_role:
+            name: "{{ current_role }}"
+
+        - name: Note the role about to run
+          ansible.builtin.set_fact:
+            current_role: geerlingguy.ntp
+
+        - name: Run geerlingguy.ntp
+          ansible.builtin.include_role:
+            name: "{{ current_role }}"
+
+      rescue:
+        - name: Build the failure reason
+          ansible.builtin.set_fact:
+            role_failure_line: >-
+              {{ inventory_hostname }}: role {{ current_role | default('unknown') }} failed at task
+              "{{ ansible_failed_task.name | default('include role') }}":
+              {{
+                ansible_failed_result.msg
+                | default(ansible_failed_result.reason)
+                | default(ansible_failed_result.stderr)
+                | default(ansible_failed_result.module_stderr)
+                | default('unknown error')
+              }}
+
+        - name: Keep every host failure for the workflow artifact
+          ansible.builtin.set_fact:
+            role_failure_reasons: >-
+              {{
+                (hostvars['localhost'].role_failure_reasons | default([]))
+                + [role_failure_line]
+              }}
+          delegate_to: localhost
+          delegate_facts: true
+
+        - name: Publish failure_reason for a later playbook
+          ansible.builtin.set_stats:
+            data:
+              failure_reason: "{{ hostvars['localhost'].role_failure_reasons | join(' | ') }}"
+            per_host: false
+
+        - name: Fail the job after recording the reason
+          ansible.builtin.fail:
+            msg: "{{ role_failure_line }}"

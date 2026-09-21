@@ -1,0 +1,12 @@
+---
+# Workflow failure-path node. failure_reason is injected from the previous
+# job's set_stats artifact.
+
+- name: Log the failure reason from the previous playbook
+  hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: Log failure reason
+      ansible.builtin.debug:
+        msg: "{{ failure_reason | default('No failure_reason was set by the previous playbook') }}"
