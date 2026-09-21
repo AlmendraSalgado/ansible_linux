@@ -18,3 +18,13 @@
 
     - command: subscription-manager config --rhsm.manage_repos=1
 
+    - name: Install packages for preparing server to install AAP
+      ansible.builtin.dnf:
+        name:
+          - ansible-core
+          - wget 
+          - git-core 
+          - rsync 
+          - vim
+        state: latest
+
