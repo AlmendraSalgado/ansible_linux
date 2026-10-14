@@ -4,3 +4,4 @@ collections:
 - name: microsoft.sql
 - name: fedora.linux_system_roles
 - name: community.general
+- name: ansible.posix

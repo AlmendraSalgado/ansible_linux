@@ -1,0 +1,105 @@
+---
+- name: Ensure the hostname of each host is a fully qualified domain name (FQDN)
+  hosts: aap
+  gather_facts: false
+
+  tasks:
+    - name: Wait for SSH connection to the hosts
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+
+    - name: Derive the public key from the private key used to reach these hosts
+      ansible.builtin.command:
+        cmd: "ssh-keygen -y -f {{ ansible_ssh_private_key_file }}"
+      register: aap_public_key
+      changed_when: false
+      delegate_to: localhost
+
+    - name: Ensure ~/.ssh exists on the remote host
+      ansible.builtin.file:
+        path: "~/.ssh"
+        state: directory
+        mode: '0700'
+
+    - name: Authorize this key for passwordless SSH between AAP hosts
+      ansible.posix.authorized_key:
+        user: "{{ ansible_user }}"
+        state: present
+        key: "{{ aap_public_key.stdout }}"
+
+    - name: Copy the private key onto the host so AAP nodes can SSH to each other
+      ansible.builtin.copy:
+        src: "{{ ansible_ssh_private_key_file }}"
+        dest: "~/.ssh/{{ ansible_ssh_private_key_file | basename }}"
+        mode: '0600'
+
+- name: Subscribe the VMs and prepare the RHEL host for AAP
+  ansible.builtin.import_playbook: subscribe_instances.yaml
+  vars:
+    ansible_become: true
+
+- name: Verify that only the BaseOS and AppStream repositories are enabled
+  hosts: aap
+  gather_facts: false
+
+  tasks:
+    - name: Run dnf repolist
+      ansible.builtin.command: dnf repolist
+      register: repolist_output
+      changed_when: false
+
+    - name: Show the enabled repository list
+      ansible.builtin.debug:
+        var: repolist_output.stdout_lines
+
+    - name: Determine which repos are currently enabled
+      ansible.builtin.set_fact:
+        enabled_repo_ids: >-
+          {{
+            repolist_output.stdout_lines
+            | select('match', '^\S+-rpms\s')
+            | map('split')
+            | map('first')
+            | list
+          }}
+
+    - name: Determine unexpected repositories
+      ansible.builtin.set_fact:
+        unexpected_repo_ids: >-
+          {{
+            enabled_repo_ids
+            | reject('search', '(?i)(baseos|appstream)')
+            | list
+          }}
+
+    - name: Fail if any repo other than BaseOS/AppStream is enabled
+      ansible.builtin.fail:
+        msg: >-
+          {{ inventory_hostname }}: unexpected repositories enabled:
+          {{ unexpected_repo_ids }}.
+          Only the BaseOS and AppStream repositories should be enabled.
+      when: unexpected_repo_ids | length > 0
+
+- name: Install additional packages required by the AAP installer
+  hosts: automationcontroller
+  become: true
+  gather_facts: false
+
+  vars:
+    aap_extra_pkgs:
+      - ansible-core
+      - wget 
+      - git-core 
+      - rsync 
+      - vim
+
+  tasks:
+    - name: Install extra AAP prerequisite packages
+      ansible.builtin.dnf:
+        name: "{{ aap_extra_pkgs }}"
+        state: latest
+
+    - name: Copy and extract the installer bundle from the automationcontroller
+      ansible.builtin.unarchive:
+        src: "{{ aap_installer_path }}"
+        dest: "/home/{{ ansible_user }}/"

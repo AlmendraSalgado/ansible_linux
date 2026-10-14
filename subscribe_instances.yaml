@@ -14,7 +14,6 @@
         state: present
         username: "{{ rhsm_username }}"
         password: "{{ rhsm_password }}"
-        auto_attach: true
 
     - command: subscription-manager config --rhsm.manage_repos=1
 
